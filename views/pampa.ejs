@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Videos de Pampa</title>
+  <style>
+    .video-container { margin-bottom: 20px; }
+    .progress-bar { width: 100%; background-color: #ddd; margin-top: 10px; }
+    .progress { width: 0; height: 20px; background-color: #4caf50; text-align: center; line-height: 20px; color: white; }
+  </style>
+</head>
+<body>
+  <h1>Videos de Pampa</h1>
+  <% videos.forEach(video => { %>
+    <div class="video-container">
+      <h3><%= video.title %></h3>
+      <video width="640" height="360" controls data-videoid="<%= video._id %>">
+        <source src="/uploads/<%= video.filename %>" type="video/mp4">
+        Tu navegador no soporta el tag de video.
+      </video>
+      <div class="progress-bar">
+        <div class="progress" style="width: 0%;">0%</div>
+      </div>
+      <% const totalViews = video.views.length; %>
+      <% const avgPercentage = totalViews > 0 ? video.views.reduce((sum, v) => sum + v.percentage, 0) / totalViews : 0; %>
+      <p>Vistas totales: <%= totalViews %>, Promedio visto: <%= avgPercentage.toFixed(2) %>%</p>
+    </div>
+  <% }); %>
+
+  <script>
+    document.querySelectorAll('video').forEach(video => {
+      const progressBar = video.nextElementSibling.querySelector('.progress');
+      const videoId = video.dataset.videoid;
+
+      video.addEventListener('timeupdate', function() {
+        const percentage = (this.currentTime / this.duration) * 100;
+        progressBar.style.width = `${percentage}%`;
+        progressBar.textContent = `${Math.round(percentage)}%`;
+      });
+
+      video.addEventListener('ended', function() {
+        updateViewPercentage(videoId, 100);
+      });
+
+      video.addEventListener('pause', function() {
+        const percentage = (this.currentTime / this.duration) * 100;
+        updateViewPercentage(videoId, percentage);
+      });
+    });
+
+    function updateViewPercentage(videoId, percentage) {
+      fetch('/update-view', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId, percentage })
+      }).catch(error => console.error('Error:', error));
+    }
+  </script>
+</body>
+</html>
